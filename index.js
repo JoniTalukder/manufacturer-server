@@ -19,6 +19,7 @@ async function run() {
     try {
         await client.connect();
         const partsCollection = client.db('manufacturer_co').collection('parts');
+        const purchaseCollection = client.db('manufacturer_co').collection('purchase');
 
         app.get('/parts', async (req, res) => {
             const query = {};
@@ -45,10 +46,10 @@ async function run() {
 
         // Update User
 
-        app.put('/parts/:id', async(req, res) =>{
+        app.put('/parts/:id', async (req, res) => {
             const id = req.params.id;
             const updatedPart = req.body;
-            const filter = {_id: ObjectId(id)};
+            const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
             const updatedDoc = {
                 $set: {
@@ -60,6 +61,12 @@ async function run() {
             const result = await partsCollection.updateOne(filter, updatedDoc, options);
             res.send(result);
 
+        });
+
+        app.post('/purchase', async (req, res) => {
+            const purchase = req.body;
+            const result = await purchaseCollection.insertOne(purchase);
+            res.send(result);
         })
 
         
