@@ -20,6 +20,7 @@ async function run() {
         await client.connect();
         const partsCollection = client.db('manufacturer_co').collection('parts');
         const purchaseCollection = client.db('manufacturer_co').collection('purchase');
+        const userCollection = client.db('manufacturer_co').collection('users');
 
         app.get('/parts', async (req, res) => {
             const query = {};
@@ -67,7 +68,18 @@ async function run() {
             const purchase = req.body;
             const result = await purchaseCollection.insertOne(purchase);
             res.send(result);
+        });
+
+        app.get('/purchase', async (req, res) => {
+            const email= req.query.email;
+            const query = { email: email };
+            const purchase = await purchaseCollection.find(query).toArray();
+            res.send(purchase);
         })
+
+
+
+
 
         
 
@@ -86,7 +98,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Simple Manufacturer Co')
+    res.send('Running Simple Manufacturer Co')
 })
 
 app.listen(port, () => {
