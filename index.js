@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -29,18 +30,32 @@ async function run() {
             res.send(parts);
         });
 
-        app.get('/parts/:id', async(req, res) =>{
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET)
+            res.send({result, token});
+        });
+
+
+        app.get('/parts/:id', async (req, res) => {
             const id = req.params.id;
-            const query={_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await partsCollection.findOne(query);
             res.send(result);
         });
 
-        
+
         // Get Part ID
-        app.get('/parts/:id', async(req, res) =>{
+        app.get('/parts/:id', async (req, res) => {
             const id = req.params.id;
-            const query={_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await partsCollection.findOne(query);
             res.send(result);
         });
@@ -71,19 +86,24 @@ async function run() {
         });
 
         app.get('/purchase', async (req, res) => {
-            const email= req.query.email;
+            const email = req.query.email;
+            const authorization = req.headers.authorization;
+            console.log('auth header',authorization);
+
             const query = { email: email };
             const purchase = await purchaseCollection.find(query).toArray();
             res.send(purchase);
-        })
+        });
 
 
 
 
 
-        
 
-        
+
+
+
+
 
 
 
