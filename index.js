@@ -16,6 +16,21 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.jnicq.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'UnAuthorized access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'Forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
+    });
+}
+
 async function run() {
     try {
         await client.connect();
@@ -40,7 +55,7 @@ async function run() {
             };
             const result = await userCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET)
-            res.send({result, token});
+            res.send({ result, token });
         });
 
 
@@ -85,23 +100,22 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/purchase', async (req, res) => {
+        app.get('/purchase', verifyJWT, async (req, res) => {
             const email = req.query.email;
-            const authorization = req.headers.authorization;
-            console.log('auth header',authorization);
+            const decodedEmail = req.decoded.email;
 
-            const query = { email: email };
-            const purchase = await purchaseCollection.find(query).toArray();
-            res.send(purchase);
+            const authorization = req.headers.authorization;
+            console.log('auth header', authorization);
+            if (email === decodedEmail) {
+                const query = { email: email };
+                const purchase = await purchaseCollection.find(query).toArray();
+                res.send(purchase);
+            } else {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
         });
 
-
-
-
-
-
-
-
+        
 
 
 
