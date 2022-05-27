@@ -37,6 +37,37 @@ async function run() {
         const partsCollection = client.db('manufacturer_co').collection('parts');
         const purchaseCollection = client.db('manufacturer_co').collection('purchase');
         const userCollection = client.db('manufacturer_co').collection('users');
+        const reviewCollection = client.db('manufacturer_co').collection('review');
+
+
+
+
+        app.get('/review', async (req, res) => {
+            const query = {};
+            const cursor = reviewCollection.find(query);
+            const services = await cursor.toArray();
+            res.send(services);
+        })
+
+        // app.get('/service/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: ObjectId(id) };
+        //     const result = await productCollection.findOne(query);
+        //     res.send(result);
+        // });
+
+        // // Add Review
+        app.post('/review', async (req, res) => {
+            const newProduct = req.body;
+            const result = await reviewCollection.insertOne(newProduct);
+        })
+
+
+
+
+
+
+
 
         app.get('/parts', async (req, res) => {
             const query = {};
