@@ -4,6 +4,9 @@ const app = express();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+
 
 require('dotenv').config();
 
@@ -38,6 +41,7 @@ async function run() {
         const purchaseCollection = client.db('manufacturer_co').collection('purchase');
         const userCollection = client.db('manufacturer_co').collection('users');
         const reviewCollection = client.db('manufacturer_co').collection('review');
+        const paymentCollection = client.db('manufacturer_co').collection('payment');
 
 
 
@@ -56,16 +60,25 @@ async function run() {
         //     res.send(result);
         // });
 
-        // // Add Review
+        // Add Review
         app.post('/review', async (req, res) => {
             const newProduct = req.body;
             const result = await reviewCollection.insertOne(newProduct);
-        })
+        });
 
 
 
-
-
+        app.post('/create-payment-intent', verifyJWT, async(req, res) =>{
+            const service = req.body;
+            const price = service.price;
+            const amount = price*100;
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount : amount,
+              currency: 'usd',
+              payment_method_types:['card']
+            });
+            res.send({clientSecret: paymentIntent.client_secret})
+          });
 
 
 
@@ -105,7 +118,9 @@ async function run() {
               res.status(403).send({message: 'forbidden'});
             }
       
-         });
+        });
+        
+
 
         app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
@@ -119,15 +134,6 @@ async function run() {
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET)
             res.send({ result, token });
         });
-
-
-        app.get('/parts/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: ObjectId(id) };
-            const result = await partsCollection.findOne(query);
-            res.send(result);
-        });
-
 
         // Get Part ID
         app.get('/parts/:id', async (req, res) => {
@@ -156,11 +162,39 @@ async function run() {
 
         });
 
+
+        app.patch('/purchase/:id', verifyJWT, async(req, res) =>{
+            const id  = req.params.id;
+            const payment = req.body;
+            const filter = {_id: ObjectId(id)};
+            const updatedDoc = {
+              $set: {
+                paid: true,
+                transactionId: payment.transactionId
+              }
+            }
+      
+            const result = await paymentCollection.insertOne(payment);
+
+            const updatedPurchase = await purchaseCollection.updateOne(filter, updatedDoc);
+            res.send(updatedPurchase);
+          })
+
+
+
+
+        app.get('/purchase/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const purchase = await purchaseCollection.findOne(query);
+            res.send(purchase);
+        });
         app.post('/purchase', async (req, res) => {
             const purchase = req.body;
             const result = await purchaseCollection.insertOne(purchase);
             res.send(result);
         });
+        
 
         app.get('/purchase', verifyJWT, async (req, res) => {
             const email = req.query.email;
