@@ -228,7 +228,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Running Simple Manufacturer Co')
+    res.send('Running Simple Manufacturer Company ')
 })
 
 app.listen(port, () => {
